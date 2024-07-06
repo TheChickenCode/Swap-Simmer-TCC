@@ -1,9 +1,11 @@
 MAX_PLAYERS:int = 8 #Don't be fooled, this is mutable
 PLAYER_IMAGE_WIDTH:int = 136
-PLAYER_IMAGE_HEIGHT:int = 136
+PLAYER_IMAGE_HEIGHT:int = 166
 
 PATH_IMAGE_FOLDER:str = '.\\img\\'
 PATH_PLAYER_BG:str = f'{PATH_IMAGE_FOLDER}8624_crumpled_white_paper_texture_by_melemel.png'
+PATH_IMG_PRESETS:str = f'{PATH_IMAGE_FOLDER}portraits'
+PATH_PLACEHOLDER_AVATAR:str = f'{PATH_IMAGE_FOLDER}vecteezy_illustration-of-human-icon-vector-user-symbol-icon-modern_8442086.jpg'
 
 class PersonObject:
     bimboExists: bool = False

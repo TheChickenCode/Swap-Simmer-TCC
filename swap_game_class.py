@@ -1,3 +1,4 @@
+from pathlib import Path
 from random import choices
 from PIL import Image, ImageTk, ImageOps
 import tkinter as tk
@@ -100,6 +101,10 @@ class NGMenu(ttk.Frame):
         self.pc_amount = tk.IntVar(value = 1)
         self.playercards:list[PlayerCardsTemplate] = []
         self.card_amount:int = 1
+
+        #Sets up picture options
+        self.pic_options = self.set_picture_options()
+
         
         self.pack(expand=True, fill='both')
         
@@ -138,7 +143,10 @@ class NGMenu(ttk.Frame):
 
     def create_playspace(self):
         self.playspace = ttk.Frame(self, borderwidth=10, style='playspace.TFrame', relief='raised')
-        self.playercards.append(PlayerCardsTemplate(self.playspace, 'Tango'))
+
+        #Creates first player card
+        #BUG: Whenever removed, when switching from 1 to 8 players, it sets to 7 players
+        self.playercards.append(PlayerCardsTemplate(self.playspace, self.pic_options))
         self.playercards[0].grid(row=0, column=0, sticky='nswe', padx=10, pady=10)
 
         self.playspace.rowconfigure((0,1), weight=1, uniform='a')
@@ -154,7 +162,7 @@ class NGMenu(ttk.Frame):
         if self.pc_amount.get() > len(self.playspace.winfo_children()):
             while True:
                 if c == b: break
-                self.playercards.append(PlayerCardsTemplate(self.playspace, 'Tango'))
+                self.playercards.append(PlayerCardsTemplate(self.playspace, self.pic_options))
                 self.playercards[-1].grid(row=0 if (c) <= 3 else 1, column=(c) % 4, sticky='nswe', padx=10, pady=10)
                 c += 1
         elif self.pc_amount.get() < len(self.playspace.winfo_children()):
@@ -166,10 +174,16 @@ class NGMenu(ttk.Frame):
         else:
             pass
 
-class PlayerCardsTemplate(ttk.Frame): #Has to be canvas
-    def __init__(self, master, pl_name:str):
+    def set_picture_options(self) -> dict[str:str]:
+        #Sets up dict with all files in portrait folder
+        #BUG: Will get any file wether it is a picture or not
+        return {pic.stem: str(pic) for pic in Path(PATH_IMG_PRESETS).iterdir()}
+
+class PlayerCardsTemplate(ttk.Frame):
+    def __init__(self, master, pic_dict:dict):
         super().__init__(master)
-        #self.picture_id = None
+        self.pic_dict = pic_dict
+        self.pic_options = list(pic_dict.keys())
 
         #Register command for age digit check
         self.age_cmd = (self.register(self.digit_check))
@@ -178,19 +192,19 @@ class PlayerCardsTemplate(ttk.Frame): #Has to be canvas
         self.canvasl = tk.Canvas(self, borderwidth=0, highlightthickness=0)
 
         #Setting background
-        pc_bg = Image.open(f'{PATH_IMAGE_FOLDER}8624_crumpled_white_paper_texture_by_melemel.png')
+        pc_bg = Image.open(PATH_PLAYER_BG)
         pc_bg = ImageOps.fit(pc_bg, size=(500,1000))
         self.pc_bg = ImageTk.PhotoImage(master=self ,image=pc_bg)
         self.canvasl.create_image(0, 0, image=self.pc_bg)
 
-        #Face image
-        testpicture = Image.open('.\\img\\ai_art\\brandon.jpg')
-        testpicture = ImageOps.fit(testpicture, (PLAYER_IMAGE_WIDTH, PLAYER_IMAGE_HEIGHT))
-        self.testpicture = ImageTk.PhotoImage(master=self ,image=testpicture)
+        #Placeholder image
+        placeholder_avatar = Image.open(PATH_PLACEHOLDER_AVATAR)
+        placeholder_avatar = ImageOps.fit(placeholder_avatar, (PLAYER_IMAGE_WIDTH, PLAYER_IMAGE_HEIGHT))
+        self.placeholder_avatar = ImageTk.PhotoImage(master=self ,image=placeholder_avatar)
 
         #Interface widgets
-        self.picture_choice = ttk.Combobox(self, state='readonly', values=['pic1', 'pic2', 'pic3'])
-        self.picture = ttk.Label(self, image=self.testpicture, style='playerimage.TLabel', relief='ridge') #Needs to be tk.Label for no border, use highlightthickness and borderwidth
+        self.picture_choice = ttk.Combobox(self, state='readonly', values=list(self.pic_dict.keys()))
+        self.picture = ttk.Label(self, image=self.placeholder_avatar, style='playerimage.TLabel', relief='ridge') #Needs to be tk.Label for no border, use highlightthickness and borderwidth
         smallbar = ttk.Separator(self, orient='horizontal', style='smallbar.TSeparator')
         self.entry_name = ttk.Entry(self, style='nameentry.TEntry')
         self.age_sex_frame = ttk.Frame(self)
@@ -200,7 +214,7 @@ class PlayerCardsTemplate(ttk.Frame): #Has to be canvas
         self.use_preset = ttk.Button(self, text='Use a Preset', command=self.get_player_info)
  
         #Picture combobox
-        self.picture_choice.bind('<<ComboboxSelected>>', lambda _: self.picture_change(f'{PATH_IMAGE_FOLDER}ai_art\\jackson.jpg'))
+        self.picture_choice.bind('<<ComboboxSelected>>', lambda _: self.picture_change(self.picture_choice.get()))
         self.picture_choice.set('Select Picture')
 
         #Name entry
@@ -237,8 +251,8 @@ class PlayerCardsTemplate(ttk.Frame): #Has to be canvas
 
         ######ADD FRAME TO CONTAIN SEX AND AGE SO THEY SHARE A ROW#######
 
-    def picture_change(self, path):
-        image1 = Image.open(path)
+    def picture_change(self, pic_key):
+        image1 = Image.open(self.pic_dict[pic_key])
         image1 = ImageOps.fit(image1, (PLAYER_IMAGE_WIDTH, PLAYER_IMAGE_HEIGHT))
         self.image2 = ImageTk.PhotoImage(master=self ,image=image1)
 
