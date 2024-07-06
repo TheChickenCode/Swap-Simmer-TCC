@@ -1,8 +1,9 @@
 MAX_PLAYERS:int = 8 #Don't be fooled, this is mutable
-PLAYER_IMAGE_WIDTH:int = 100
+PLAYER_IMAGE_WIDTH:int = 136
 PLAYER_IMAGE_HEIGHT:int = 136
 
-PATH_INFO_BUTTON_ICON:str = 'C:\\Users\\GUSTAVO\\Documents\\Python\\swap_game\\img\\info.png'
+PATH_IMAGE_FOLDER:str = '.\\img\\'
+PATH_PLAYER_BG:str = f'{PATH_IMAGE_FOLDER}8624_crumpled_white_paper_texture_by_melemel.png'
 
 class PersonObject:
     bimboExists: bool = False
