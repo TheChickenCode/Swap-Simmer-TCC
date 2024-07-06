@@ -105,9 +105,7 @@ class NGMenu(ttk.Frame):
         #Sets up picture options
         self.pic_options = self.set_picture_options()
 
-        
-        self.pack(expand=True, fill='both')
-        
+        self.pack(expand=True, fill='both')   
         self.create_widgets()
         
     def create_widgets(self):
@@ -184,6 +182,7 @@ class PlayerCardsTemplate(ttk.Frame):
         super().__init__(master)
         self.pic_dict = pic_dict
         self.pic_options = list(pic_dict.keys())
+        self.image_avatar = None
 
         #Register command for age digit check
         self.age_cmd = (self.register(self.digit_check))
@@ -254,9 +253,9 @@ class PlayerCardsTemplate(ttk.Frame):
     def picture_change(self, pic_key):
         image1 = Image.open(self.pic_dict[pic_key])
         image1 = ImageOps.fit(image1, (PLAYER_IMAGE_WIDTH, PLAYER_IMAGE_HEIGHT))
-        self.image2 = ImageTk.PhotoImage(master=self ,image=image1)
+        self.image_avatar = ImageTk.PhotoImage(master=self ,image=image1)
 
-        self.picture.configure(image=self.image2)
+        self.picture.configure(image=self.image_avatar)
 
     def clear_entry(self, widget):
         if widget is self.entry_name and not self.name_touched:
@@ -302,9 +301,9 @@ class PlayerCardsTemplate(ttk.Frame):
 
     def get_player_info(self, attribute:str = '') -> dict: #Using match,case to fetch specific player data, may not be needed (vars(), __getattr__<abstract function)
         p_info = {
-            'pic' : { #Needs actual logic
-                'object' : self.testpicture,
-                'path' : ''
+            'avatar' : {
+                'object' : self.image_avatar if self.image_avatar else self.placeholder_avatar,
+                'path' : self.pic_dict[self.picture_choice.get()] if self.image_avatar else PATH_PLACEHOLDER_AVATAR
                 },
             'name' : self.entry_name.get() if self.entry_name.get() != 'Name' else None, #Sends empty if no name set
             'gender' : self.sex_gender.get() if self.sex_gender.get() != 'Gender' else None, #Sends empty if not selected gender
