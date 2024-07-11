@@ -1,9 +1,10 @@
+import tkinter as tk
+from tkinter import ttk
+
 from pathlib import Path
 from typing import Callable
 from random import choices
 from PIL import Image, ImageTk, ImageOps
-import tkinter as tk
-from tkinter import ttk
 from pywinstyles import set_opacity
 
 import swap_framework as sf
@@ -24,7 +25,7 @@ class SwapGame(tk.Tk):
         #self.player_amount.set(1)
 
         self.setup_styles()
-        self.create_mainMenu()
+        self.create_main_menu()
         self.mainloop()
 
     def setup_styles(self) -> None:
@@ -38,12 +39,12 @@ class SwapGame(tk.Tk):
         style.configure('nameentry.TEntry', foreground='#A4A7AB') #Name entry with no name
         style.configure('transp.TButton', background='#010101') #Use this color for transparency
 
-    def create_mainMenu(self) -> None:
+    def create_main_menu(self) -> None:
         '''Only to be used internally by __init__ and on_return'''
         self.menu = BootMenu(self)
 
     def on_new(self) -> None:
-        self.menu.pack_forget()
+        self.menu.destroy()
         self.ng = NGMenu(self, 0.25)
 
     def on_load(self) -> None:
@@ -58,7 +59,7 @@ class SwapGame(tk.Tk):
     def on_return(self) -> None:
         for i in self.winfo_children():
             i.destroy()
-        self.create_mainMenu()
+        self.create_main_menu()
 
 class BootMenu(ttk.Frame):
     def __init__(self, master) -> None:
@@ -123,22 +124,37 @@ class NGMenu(ttk.Frame):
         self.sidebar.columnconfigure(0, weight=1)
 
         #Grid 1 Widgets
-        self.grid1_frame = ttk.Labelframe(self.sidebar, text='Number of Players', style='sidebar.TFrame', labelanchor='n')
-        self.player_number_cbox = ttk.Spinbox(
-            self.grid1_frame, from_=1, to=8, wrap=True, textvariable=self.pc_amount, justify='center', 
-            command=self.place_pc_customizer, state='readonly')
+        grid1_frame = ttk.Frame(self.sidebar, style='sidebar.TFrame')
+        grid1_label = ttk.Label(grid1_frame, text='Number of Players', background='#424242')
+        player_number_cbox = ttk.Spinbox(
+            grid1_frame, from_=1, to=8, wrap=True, textvariable=self.pc_amount, justify='center',
+            command=self.place_pc_customizer, state='readonly'
+        )
+
+        #Grid 2 Widgets
+        grid2_frame = ttk.Frame(self.sidebar, style='sidebar.TFrame')
+        #TBI: save and load presets
+        save_preset = ttk.Button(grid2_frame, text='Save as Starting Preset', style='return.TButton')
+        load_preset = ttk.Button(grid2_frame, text='Load Starting Preset', style='return.TButton')
+        start_game = ttk.Button(grid2_frame, text='Start Game', style='return.TButton', command=self.on_start)
 
         #Grid 3 Widgets
-        self.grid3_frame = ttk.Frame(self.sidebar)
-        self.return_to_main = ttk.Button(self.grid3_frame, text='Return', command=self.master.on_return)
-        self.return_to_main.configure(style='return.TButton')
+        grid3_frame = ttk.Frame(self.sidebar)
+        return_to_main = ttk.Button(grid3_frame, text='Return', command=self.master.on_return)
+        return_to_main.configure(style='return.TButton')
 
         #Placements
-        self.grid1_frame.grid(row=0)
-        self.player_number_cbox.pack(anchor='center')
+        grid1_frame.grid(row=0)
+        grid1_label.pack(anchor='center')
+        player_number_cbox.pack(anchor='center')
 
-        self.grid3_frame.grid(row=2)
-        self.return_to_main.pack(anchor='center')
+        grid2_frame.grid(row=1, sticky='we')
+        save_preset.pack(anchor='center', fill='x', padx=10, pady=2.5)
+        load_preset.pack(anchor='center', fill='x', padx=10, pady=2.5)
+        start_game.pack(anchor='center', fill='x', padx=10, pady=2.5)
+
+        grid3_frame.grid(row=2)
+        return_to_main.pack(anchor='center')
 
     def create_playspace(self) -> None:
         self.playspace = ttk.Frame(self, borderwidth=10, style='playspace.TFrame', relief='raised')
@@ -162,7 +178,12 @@ class NGMenu(ttk.Frame):
             while True:
                 if c == b: break
                 self.playercards.append(PlayerCardsTemplate(self.playspace, self.pic_options))
-                self.playercards[-1].grid(row=0 if (c) <= 3 else 1, column=(c) % 4, sticky='nswe', padx=10, pady=10)
+                self.playercards[-1].grid(
+                    row=0 if (c) <= 3 else 1,
+                    column=(c) % 4,
+                    sticky='nswe',
+                    padx=10, pady=10
+                )
                 c += 1
         elif self.pc_amount.get() < len(self.playspace.winfo_children()):
             while True:
@@ -174,12 +195,16 @@ class NGMenu(ttk.Frame):
             pass
 
     def set_picture_options(self) -> dict[str,str]:
-        #Sets up dict with all files in portrait folder
+        '''Sets up dict with all files in portrait folder.'''
         #BUG: Will get any file wether it is a picture or not
         pic_choices:dict[str,str] = {pic.stem: str(pic) for pic in Path(PATH_IMG_PRESETS).iterdir()}
-        #for x in presets:
-        #    pic_choices.update({x[0]: x[4]})
         return pic_choices
+    
+    def on_start(self) -> None:
+        for i in self.playercards:
+            p_info = i.get_player_info()
+            self.cards = (i, p_info)
+        print(self.cards)
 
 class PlayerCardsTemplate(ttk.Frame):
     def __init__(self, master, pic_dict:dict) -> None:
@@ -189,16 +214,16 @@ class PlayerCardsTemplate(ttk.Frame):
         self.image_avatar = None
 
         #Register command for age digit check
-        self.age_cmd = (self.register(self.digit_check))
+        self.age_cmd = self.register(self.digit_check)
 
         #Creating canvas for background
-        self.canvasl = tk.Canvas(self, borderwidth=0, highlightthickness=0)
+        canvasl = tk.Canvas(self, borderwidth=0, highlightthickness=0)
 
         #Setting background
         pc_bg = Image.open(PATH_PLAYER_BG)
         pc_bg = ImageOps.fit(pc_bg, size=(500,1000)) #random numbers
-        self.pc_bg = ImageTk.PhotoImage(master=self ,image=pc_bg)
-        self.canvasl.create_image(0, 0, image=self.pc_bg)
+        self.pc_bg = ImageTk.PhotoImage(master=self, image=pc_bg)
+        canvasl.create_image(0, 0, image=self.pc_bg)
 
         #Placeholder image
         placeholder_avatar = Image.open(PATH_PLACEHOLDER_AVATAR)
@@ -207,14 +232,15 @@ class PlayerCardsTemplate(ttk.Frame):
 
         #Interface widgets
         self.picture_choice = ttk.Combobox(self, state='readonly', values=self.pic_options)
-        self.picture = ttk.Label(self, image=self.placeholder_avatar, style='playerimage.TLabel', relief='ridge') #Needs to be tk.Label for no border, use highlightthickness and borderwidth
+        'Needs to be tk.Label for no border, use highlightthickness and borderwidth'
+        self.picture = ttk.Label(self, image=self.placeholder_avatar, style='playerimage.TLabel', relief='ridge')
         smallbar = ttk.Separator(self, orient='horizontal', style='smallbar.TSeparator')
         self.entry_name = ttk.Entry(self, style='nameentry.TEntry')
         self.age_sex_frame = ttk.Frame(self)
         self.sex_gender = ttk.Combobox(self.age_sex_frame, state='readonly', values=['Male', 'Female'], width=7)
         self.how_old = ttk.Entry(self.age_sex_frame, style='nameentry.TEntry')
         self.ethnicity_cbox = ttk.Combobox(self, values=['White', 'Black', 'Hispanic', 'Asian'])
-        #
+        # Buttons that could be the same one
         self.use_preset = ttk.Button(self, text='Use a Preset', command=self.on_use_preset)
         self.create_custom = ttk.Button(self, text='Create Custom', command=self.on_create_custom)
         # ^Could probably just use one button
@@ -245,7 +271,7 @@ class PlayerCardsTemplate(ttk.Frame):
         set_opacity(self.create_custom.winfo_id(), color="#010101")
         
         #Placements
-        self.canvasl.place(relx=0, rely=0, relheight=1, relwidth=1)
+        canvasl.place(relx=0, rely=0, relheight=1, relwidth=1)
         self.picture_choice.pack(padx=30, pady=5)
         self.picture.pack()
         smallbar.pack(padx=15, pady=5, fill='x')
@@ -263,7 +289,7 @@ class PlayerCardsTemplate(ttk.Frame):
     def custom_picture_change(self, pic_key) -> None:
         image1 = Image.open(self.pic_dict[pic_key])
         image1 = ImageOps.fit(image1, (PLAYER_IMAGE_WIDTH, PLAYER_IMAGE_HEIGHT))
-        self.image_avatar = ImageTk.PhotoImage(master=self ,image=image1)
+        self.image_avatar = ImageTk.PhotoImage(master=self, image=image1)
         self.picture.configure(image=self.image_avatar)
 
     def preset_fill_data(self, choice_key) -> None:
@@ -273,7 +299,7 @@ class PlayerCardsTemplate(ttk.Frame):
         #Changing picture
         image1 = Image.open(preset_tuple[4])
         image1 = ImageOps.fit(image1, (PLAYER_IMAGE_WIDTH, PLAYER_IMAGE_HEIGHT))
-        self.image_avatar = ImageTk.PhotoImage(master=self ,image=image1)
+        self.image_avatar = ImageTk.PhotoImage(master=self, image=image1)
         self.picture.configure(image=self.image_avatar)
 
         #Setting the rest of the info
@@ -313,14 +339,13 @@ class PlayerCardsTemplate(ttk.Frame):
             self.restore_placeholder(widget, 'Age')
             self.age_touched = False
 
-    def restore_placeholder(self, widget, text) -> None:
+    def restore_placeholder(self, widget, text:str) -> None:
         widget.configure(style='nameentry.TEntry')
         widget.insert(0, text)
         widget.bind('<FocusIn>', lambda _: self.clear_entry(widget))
 
-    def digit_check(self, P) -> bool:
-        if str.isdigit(P) or P == '': return True
-        else: return False
+    def digit_check(self, p:str) -> bool:
+        return (str.isdigit(p) or p == '')
 
     def on_use_preset(self) -> None:
         #Replaces button
@@ -363,19 +388,23 @@ class PlayerCardsTemplate(ttk.Frame):
     def get_player_info(self, attribute:str = '') -> dict: #Using match,case to fetch specific player data, may not be needed (vars(), __getattr__<abstract function)
         p_info = {
             'avatar' : {
-                'object' : self.image_avatar if self.image_avatar else self.placeholder_avatar,
-                'path' : self.pic_dict[self.picture_choice.get()] if self.image_avatar else PATH_PLACEHOLDER_AVATAR
+                'object' : self.image_avatar if self.picture_choice.get() not in ('Select Picture', 'Select Preset') else self.placeholder_avatar,
+                'path' : self.get_player_pic_path()
                 },
             'name' : self.entry_name.get() if self.entry_name.get() != 'Name' else None, #Sends empty if no name set
             'gender' : self.sex_gender.get() if self.sex_gender.get() != 'Gender' else None, #Sends empty if not selected gender
             'age' : int(self.how_old.get()) if self.how_old.get() != 'Age' and int(self.how_old.get()) >= 18 else None, #Temporary age logic, needs to happen when start button is pressed
             'ethnicity' : self.ethnicity_cbox.get() if self.ethnicity_cbox.get() != 'Ethnicity' else None #Sends empty if not set ethnicity
         }
-        print(p_info)
-        print(sf.getyoung_adults(everyone))
         return p_info
 
-        
+    def get_player_pic_path(self) -> str:
+        choice = self.picture_choice.get()
+        pic_path = self.pic_dict.get(choice, presets_dict.get(choice, PATH_PLACEHOLDER_AVATAR))
+        return pic_path
 
+class IGPlayerCard(ttk.Frame):
+    def __init__(self, master, player_info:dict) -> None:
+        super().__init__(master)
 
 game = SwapGame('TC\'s Swap "Simmer"', (1000,700))

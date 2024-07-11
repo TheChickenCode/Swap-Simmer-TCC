@@ -1,6 +1,7 @@
-from swap_game_data import *
-from random import randint, choices
+'''Collection of functions that make the game work behind the scenes.'''
 from numpy import random as rd
+from random import randint, choices
+from swap_game_data import *
 
 ######################################
 # # # # # # Card Chances # # # # # # #
@@ -22,54 +23,62 @@ bimbo_himbo_ratio: float = 0.9
 bimbo_himbo_bool:bool = randint(1, 10) >= 10*bimbo_himbo_ratio
 
 ######################################
-# # # # # Swapping Functions # # # # # 
+# # # # # Swapping Functions # # # # #
 ######################################
 
 def swap(actor1: PersonObject, actor2: PersonObject, to_swap: list) -> None:
-    '''Internal function used as framework for specific-swap swapping functions'''
+    '''Internal function used as framework for specific-swap swapping functions.'''
     for att in to_swap:
         temp_att = getattr(actor1, att)
         setattr(actor1, att, getattr(actor2, att))
         setattr(actor2, att, temp_att)
 
 def get_player2(index:int) -> int:
-    '''Internal function used only by swapping functions'''
+    '''Internal function used only by swapping functions.'''
     while True:
         p2_index = (index + randint(1,8)) % 8
         if p2_index != index: break
     return p2_index
 
 def swap_body(actor:list[PersonObject], index) -> bool:
+    '''Swaps picture, current_age, sex and current_race.'''
     p2_index = get_player2(index)
     swap(actor[index], actor[p2_index], ['picture', 'current_age', 'sex', 'current_race'])
     print(f'Swapping bodies between {actor[index].name} and {actor[p2_index].name}')
     return True
 
-def swap_sex(actor:list[PersonObject], index) -> bool: #TODO: Needs both a before and after sex swap
+#TODO: Needs both a before and after sex swap
+def swap_sex(actor:list[PersonObject], index) -> bool:
+    '''Swaps sex.'''
     p2_index = get_player2(index)
     swap(actor[index], actor[p2_index], ['sex'])
     print(f'Swapping sex between {actor[index].name} and {actor[p2_index].name}')
     return True
 
 def swap_age(actor:list[PersonObject], index) -> bool:
+    '''Swaps current_age.'''
     p2_index = get_player2(index)
     swap(actor[index], actor[p2_index], ['current_age'])
     print(f'Swapping ages between {actor[index].name} and {actor[p2_index].name}')
     return True
 
 def swap_identity(actor:list[PersonObject], index) -> bool:
+    '''Swaps identity, age, race and gender.'''
     p2_index = get_player2(index)
     swap(actor[index], actor[p2_index], ['identity', 'age', 'race', 'gender'])
     print(f'Swapping minds between {actor[index].name} and {actor[p2_index].name}')
     return True
 
 def swap_race(actor:list[PersonObject], index) -> bool:
+    '''Swaps current_race.'''
     p2_index = get_player2(index)
     swap(actor[index], actor[p2_index], ['current_race'])
     print(f'Swapping races between {actor[index].name} and {actor[p2_index].name}')
     return True
 
-def change_sex(actor:list[PersonObject], index) -> bool: #TODO: Needs both a before and after sex swap
+#TODO: Needs both a before and after sex swap
+def change_sex(actor:list[PersonObject], index) -> bool:
+    '''Changes Male into Female and vice-versa.'''
     if actor[index].sex == 'Male':
         actor[index].sex = 'Female'
     else:
@@ -78,15 +87,21 @@ def change_sex(actor:list[PersonObject], index) -> bool: #TODO: Needs both a bef
     return True
 
 def change_age(actor:list[PersonObject], index) -> bool:
+    '''
+    Adds or reduces age of character.
+    Tries to give younger character bigger numbers when ageing up. (I hope so)
+    '''
     age_up:bool = randint(1,2) == 2
 
-    age_change_number = round((rd.gamma(1,2)*1.1)%16)
-    if age_change_number < 2: age_change_number = 2
-    if age_change_number > 16: age_change_number = 16
+    age_change_number = round((rd.gamma(1,2) * 1.1) % 16)
+    age_change_number = max(age_change_number, 2)
+    age_change_number = min(age_change_number, 16)
 
-    if actor[index].current_age >= 25 or (age_up == True and actor[index].current_age <= 25 and randint(1,1) == 1): round((rd.gamma(1,2)*11)%16)
+    if (actor[index].current_age >= 25 or 
+            (age_up == True and actor[index].current_age <= 25 and randint(1,2) == 1)):
+        round((rd.gamma(1,2)*11)%16)
 
-    if age_up == True:
+    if age_up:
         actor[index].current_age += age_change_number
         print(f'Changing {actor[index].name} age up by {age_change_number} years')
     else:
@@ -94,18 +109,17 @@ def change_age(actor:list[PersonObject], index) -> bool:
         if actor[index].current_age <= 11:
             actor[index].current_age = 12
             print(f'Changing {actor[index].name} age down to {age_change_number} years')
-        else: 
+        else:
             print(f'Changing {actor[index].name} age down by {age_change_number} years')
-    
+
     return True
 
 def change_race(actor:list[PersonObject], index) -> bool:
-    races:list = ['White', 'Black', 'Asian', 'Hispanic']
-
+    '''Changes character race to a different one, picked from a list.'''
     while True:
         race_picked = races[randint(0,3)]
         if actor[index].current_race == race_picked:
-            continue
+            pass
         else:
             actor[index].current_race = race_picked
             break
@@ -113,7 +127,8 @@ def change_race(actor:list[PersonObject], index) -> bool:
     return True
 
 def bimbofy(actor:list[PersonObject], index) -> bool:
-    if PersonObject.bimboExists == True: return False
+    '''Changes character into either Drake or Candy depending on the bimbo_himbo_ratio.'''
+    if PersonObject.bimboExists: return False
     PersonObject.bimboExists = True
 
     actor[index].age = actor[index].current_age = 24
@@ -128,7 +143,9 @@ def bimbofy(actor:list[PersonObject], index) -> bool:
     return True
 
 def adapt_to_body(actor:list[PersonObject], index) -> bool:
-    if (actor[index].identity == 'Candy' or 'Drake') and (actor[index].current_name != 'Candy' or 'Drake'):
+    '''Changes character's mind attributes to match their body's.'''
+    if ((actor[index].identity == 'Candy' or 'Drake') and
+            (actor[index].current_name != 'Candy' or 'Drake')):
         PersonObject.bimboExists = True
 
     actor[index].identity = actor[index].current_name
@@ -139,7 +156,9 @@ def adapt_to_body(actor:list[PersonObject], index) -> bool:
     return True
 
 def adapt_to_mind(actor:list[PersonObject], index) -> bool:
-    if (actor[index].current_name == 'Candy' or 'Drake') and (actor[index].identity != 'Candy' or 'Drake'):
+    '''Changes character's body attributes to match their mind's.'''
+    if ((actor[index].current_name == 'Candy' or 'Drake') and
+            (actor[index].identity != 'Candy' or 'Drake')):
         PersonObject.bimboExists = False
 
     actor[index].current_name = actor[index].identity
@@ -150,21 +169,18 @@ def adapt_to_mind(actor:list[PersonObject], index) -> bool:
     return True
 
 def new_default(people_list:list[PersonObject]) -> None:
-    for c in people_list:
-        people_list[c-1].age
-        pass
+    '''NYI.'''
     #What is new default? Do their name change as well or just their originals reset?
 
 def reset_all(people_list:list[PersonObject]) -> None:
-    for c in people_list:
-        pass
+    '''NYI.'''
 
 ######################################
 # # # # # # TEST FUNCTIONS # # # # # #
 ######################################
 
 def getelder(people:list[PersonObject]) -> list:
-    '''Returns list of people aged 66 and above'''
+    '''Returns list of people aged 66 and above.'''
     elder:list = []
     for person in people:
         if person.age >= 66:
@@ -172,7 +188,7 @@ def getelder(people:list[PersonObject]) -> list:
     return elder
 
 def getmiddle_age_adults(people:list[PersonObject]) -> list:
-    '''Returns list of people aged from 36 to 65 years old'''
+    '''Returns list of people aged from 36 to 65 years old.'''
     maa:list = []
     for person in people:
         if 65 >= person.age >= 36:
@@ -180,7 +196,7 @@ def getmiddle_age_adults(people:list[PersonObject]) -> list:
     return maa
 
 def getyoung_adults(people:list[PersonObject]) -> list:
-    '''Returns list of people aged from 19 to 35 years old'''
+    '''Returns list of people aged from 19 to 35 years old.'''
     ya:list = []
     for person in people:
         if 35 >= person.age >= 19:
@@ -188,7 +204,7 @@ def getyoung_adults(people:list[PersonObject]) -> list:
     return ya
 
 def getteens(people:list[PersonObject]) -> list:
-    '''Returns list of people aged from 13 to 18 years old'''
+    '''Returns list of people aged from 13 to 18 years old.'''
     teens:list = []
     for person in people:
         if 18 >= person.age >= 13:
@@ -196,7 +212,7 @@ def getteens(people:list[PersonObject]) -> list:
     return teens
 
 def getkids(people:list[PersonObject]) -> list:
-    '''Returns list of people aged from 6 to 12 years old'''
+    '''Returns list of people aged from 6 to 12 years old.'''
     kids:list = []
     for person in people:
         if 12 >= person.age >= 6:
@@ -204,7 +220,7 @@ def getkids(people:list[PersonObject]) -> list:
     return kids
 
 def getbabies(people:list[PersonObject]) -> list:
-    '''Returns list of people aged 5 and below'''
+    '''Returns list of people aged 5 and below.'''
     babies:list = []
     for person in people:
         if 5 >= person.age:
@@ -214,16 +230,29 @@ def getbabies(people:list[PersonObject]) -> list:
 #################################
 
 def describe_swap(bodies:list[PersonObject]) -> None:
-    '''Prints current situation for every PersonObject in the list'''
+    '''Prints current situation for every PersonObject in the list.'''
     for actor in bodies:
-        print(f'{actor.name} thinks they are {actor.identity} a {actor.age} years old {actor.race} {actor.gender} in the body of {actor.current_name}, a {actor.current_age} years old {actor.current_race} {actor.sex}.')
+        print(
+            f'''{actor.name} thinks they are {actor.identity}
+            a {actor.age} years old {actor.race} {actor.gender}
+            in the body of {actor.current_name},
+            a {actor.current_age} years old {actor.current_race} {actor.sex}.'''
+        )
 
 def write_swap(actor:PersonObject) -> str:
-    '''Returns a string describing a PersonObject current situation'''
-    return f'{actor.name} thinks they are {actor.identity} a {actor.age} years old {actor.race} {actor.gender} in the body of {actor.current_name}, a {actor.current_age} years old {actor.current_race} {actor.sex}.'
+    '''Returns a string describing a PersonObject current situation.'''
+    return f'''
+        {actor.name} thinks they are {actor.identity}
+        a {actor.age} years old {actor.race} {actor.gender}
+        in the body of {actor.current_name},
+        a {actor.current_age} years old {actor.current_race} {actor.sex}.
+    '''
 
 def prob_range() -> None:
-    '''For sampling probabilities, should be used for debugging after manually changing card values in card_chances{}'''
+    '''
+    For sampling probabilities, should be used for debugging
+    after manually changing card values in card_chances{}.
+    '''
     probabilities = {key: 0 for key in card_chances}
 
     for _ in range(1000):

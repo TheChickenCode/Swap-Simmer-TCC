@@ -9,8 +9,6 @@ PATH_PLACEHOLDER_AVATAR:str = f'{PATH_IMAGE_FOLDER}vecteezy_illustration-of-huma
 PATH_TEST_IMAGE:str = f'{PATH_IMAGE_FOLDER}testimg.png'
 
 class PersonObject:
-    bimboExists: bool = False
-
     def __init__(self, id:int , name:str , age:int , sex:str , race:str , path:str) -> None:
         self.id = id
         self.name: str = name
@@ -123,7 +121,7 @@ people_bri_lexi = [
 ]
 
 #presets:list = ['Maisy', 'Zack', 'Theodore', 'Grace', 'Arthur', 'Tyler', 'Jack', 'Maya', 'Zeke', 'Evan', 'Cindy']
-presets:list = [
+presets:list = [ #Will eventually become a YAML file that constructs this
     ('Maisy', 20, 'Female', 'White', 'img\\testimg.png'), 
     ('Zack', 19, 'Male', 'White', 'img\\testimg.png'), 
     ('Theodore', 30, 'Male', 'Hispanic', 'img\\testimg.png'), 
@@ -138,6 +136,9 @@ presets:list = [
 ]
 presets_dict:dict[str,int] = {x[0]: i for i, x in enumerate(presets)} #Later change it to simple data to reduce necessary computation
 everyone:list[PersonObject] = people_georgia + people_chloe + people_faith + people_hannah + people_lily + people_tiffany + people_bri_lexi
+
+#TODO: Build list from YAML and add to it if user types a different one, check case sensitivity
+races:list = ['White', 'Black', 'Asian', 'Hispanic']
 
 def person_get_help() -> None: #wtf is this name
     p_ids:list = [3, 8, 13, 14, 15, 35, 36, 37, 38, 39, 50]
