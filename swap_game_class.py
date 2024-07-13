@@ -142,15 +142,19 @@ class NGMenu(ttk.Frame):
             playercards (list): List to store instances of PlayerCardsTemplate.
             card_amount (int): Number of player cards, initialized to 1.
             pic_options (list): List of picture options for player avatars.
+            previous_card_amount (int): Tracks previous card amount to avoid 1 to 8 bug.
         """        
         super().__init__(master)
-        self.rel_width = rel_width
-        self.pc_amount = tk.IntVar(value = 1)
-        self.playercards:list[PlayerCardsTemplate] = []
-        self.card_amount:int = 1
+        self.rel_width: float = rel_width
+        self.pc_amount = tk.IntVar(value=1)
+        self.playercards: list[PlayerCardsTemplate] = []
+        self.card_amount: int = 1
 
         #Sets up picture options
-        self.pic_options = self.set_picture_options()
+        self.pic_options: dict[str,str] = self.set_picture_options()
+
+        #Tracking variable
+        self.previous_card_amount: int = 0
 
         self.pack(expand=True, fill='both')   
         self.create_widgets()
@@ -189,7 +193,7 @@ class NGMenu(ttk.Frame):
         #Grid 1 Widgets
         grid1_frame = ttk.Frame(self.sidebar, style='sidebar.TFrame')
         grid1_label = ttk.Label(grid1_frame, text='Number of Players', background='#424242')
-        player_number_cbox = ttk.Spinbox(
+        self.player_number_cbox = ttk.Spinbox(
             grid1_frame, from_=1, to=8, wrap=True, textvariable=self.pc_amount, justify='center',
             command=self.place_pc_customizer, state='readonly'
         )
@@ -209,7 +213,7 @@ class NGMenu(ttk.Frame):
         #Placements
         grid1_frame.grid(row=0)
         grid1_label.pack(anchor='center')
-        player_number_cbox.pack(anchor='center')
+        self.player_number_cbox.pack(anchor='center')
 
         grid2_frame.grid(row=1, sticky='we')
         save_preset.pack(anchor='center', fill='x', padx=10, pady=2.5)
@@ -240,27 +244,29 @@ class NGMenu(ttk.Frame):
         - Removes frames if the target amount is less than the current amount.
         - Arranges frames in a grid with a maximum of four frames per row.
         """
-        b = self.pc_amount.get() #Target Amount
-        c = len(self.playspace.winfo_children()) #Current Amount
-      
-        #Adds or removes ('b' - 'c') frames until 'c' is the same as 'b'
-        if self.pc_amount.get() > len(self.playspace.winfo_children()):
-            while True:
-                if c == b: break
-                self.playercards.append(PlayerCardsTemplate(self.playspace, self.pic_options))
-                self.playercards[-1].grid(
-                    row=0 if (c) <= 3 else 1,
-                    column=(c) % 4,
-                    sticky='nswe',
-                    padx=10, pady=10
-                )
-                c += 1
-        elif self.pc_amount.get() < len(self.playspace.winfo_children()):
-            while True:
-                if c == b: break
+        target_amount: int = self.pc_amount.get()
+        current_amount: int = len(self.playercards)
+
+        if self.previous_card_amount == 1 and target_amount == 7:
+            self.player_number_cbox.set(8)
+            self.previous_card_amount = len(self.playercards)
+            return
+        self.previous_card_amount = len(self.playercards)
+
+        # Add or remove frames until the current amount matches the target amount
+        if target_amount > current_amount:
+            while current_amount < target_amount:
+                new_card = PlayerCardsTemplate(self.playspace, self.pic_options)
+                self.playercards.append(new_card)
+                row = 0 if current_amount <= 3 else 1
+                col = current_amount % 4
+                self.playercards[-1].grid(row=row, column=col, sticky='nswe', padx=10, pady=10)
+                current_amount += 1
+        elif target_amount < current_amount:
+            while current_amount > target_amount:
                 self.playercards[-1].destroy()
                 self.playercards.pop()
-                c -= 1
+                current_amount -= 1
 
     def set_picture_options(self) -> dict[str, str]:
         """
